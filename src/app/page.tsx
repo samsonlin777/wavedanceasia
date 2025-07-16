@@ -1,6 +1,102 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import MetricCard from '../components/MetricCard'
+import { getBusinessSummary, getWavedanceData } from '../lib/supabase'
+
+interface BusinessSummary {
+  total_customers: number
+  active_inquiries: number
+  monthly_revenue: number
+  inventory_value: number
+  taiwan_revenue: number
+  overseas_revenue: number
+}
+
+interface ConversionFunnelData {
+  inquiry_status: string
+  count: number
+  percentage: number
+}
 
 export default function Home() {
+  const [businessData, setBusinessData] = useState<BusinessSummary | null>(null)
+  const [conversionData, setConversionData] = useState<ConversionFunnelData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        
+        // 取得業務總覽資料
+        const summaryData = await getBusinessSummary()
+        if (summaryData) {
+          setBusinessData(summaryData)
+        }
+        
+        // 取得轉換漏斗資料
+        const funnelData = await getWavedanceData('conversion_funnel')
+        if (funnelData && Array.isArray(funnelData)) {
+          setConversionData(funnelData)
+        }
+        
+      } catch (err) {
+        console.error('資料載入失敗:', err)
+        setError('資料載入失敗，請稍後重試')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  // 計算台灣vs海外收入百分比
+  const getTaiwanPercentage = () => {
+    if (!businessData) return 0
+    const total = businessData.taiwan_revenue + businessData.overseas_revenue
+    return total > 0 ? Math.round((businessData.taiwan_revenue / total) * 100) : 0
+  }
+
+  const getOverseasPercentage = () => {
+    if (!businessData) return 0
+    const total = businessData.taiwan_revenue + businessData.overseas_revenue
+    return total > 0 ? Math.round((businessData.overseas_revenue / total) * 100) : 0
+  }
+
+  // 格式化金額
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('zh-TW', {
+      style: 'currency',
+      currency: 'TWD',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-sand-warm flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🌊</div>
+          <p className="text-ocean-deep text-lg">載入中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-sand-warm flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="text-coral-pink text-lg">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-sand-warm">
       {/* Header */}
@@ -25,28 +121,28 @@ export default function Home() {
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard 
             title="總客戶數" 
-            value="25" 
-            trend="本月 +3位" 
+            value={businessData?.total_customers.toString() || '0'} 
+            trend="實時數據" 
             icon="👥"
             trendDirection="up"
           />
           <MetricCard 
             title="活躍詢問" 
-            value="22" 
-            trend="轉換率 88%" 
+            value={businessData?.active_inquiries.toString() || '0'} 
+            trend="進行中詢問" 
             icon="💬"
             trendDirection="up"
           />
           <MetricCard 
             title="本月收入" 
-            value="NT$ 45,230" 
-            trend="+12.5%" 
+            value={formatAmount(businessData?.monthly_revenue || 0)} 
+            trend="本月累計" 
             icon="💰"
             trendDirection="up"
           />
           <MetricCard 
             title="庫存價值" 
-            value="NT$ 334,000" 
+            value={formatAmount(businessData?.inventory_value || 0)} 
             trend="健康狀態" 
             icon="📦"
             trendDirection="neutral"
@@ -65,7 +161,7 @@ export default function Home() {
             <div className="text-center text-text-primary">
               <div className="text-4xl mb-4">📈</div>
               <p className="text-lg font-semibold">收入趨勢圖</p>
-              <p className="text-sm">連接 Supabase 後顯示實際數據</p>
+              <p className="text-sm">即將加入互動式圖表</p>
             </div>
           </div>
         </section>
@@ -81,17 +177,27 @@ export default function Home() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-text-primary">台灣</span>
-                <span className="text-ocean-deep font-semibold">35%</span>
+                <span className="text-ocean-deep font-semibold">
+                  {getTaiwanPercentage()}% ({formatAmount(businessData?.taiwan_revenue || 0)})
+                </span>
               </div>
               <div className="w-full bg-sand-light rounded-full h-3">
-                <div className="bg-wave-teal h-3 rounded-full" style={{width: '35%'}}></div>
+                <div 
+                  className="bg-wave-teal h-3 rounded-full transition-all duration-500" 
+                  style={{width: `${getTaiwanPercentage()}%`}}
+                ></div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-text-primary">海外</span>
-                <span className="text-ocean-deep font-semibold">65%</span>
+                <span className="text-ocean-deep font-semibold">
+                  {getOverseasPercentage()}% ({formatAmount(businessData?.overseas_revenue || 0)})
+                </span>
               </div>
               <div className="w-full bg-sand-light rounded-full h-3">
-                <div className="bg-ocean-blue h-3 rounded-full" style={{width: '65%'}}></div>
+                <div 
+                  className="bg-ocean-blue h-3 rounded-full transition-all duration-500" 
+                  style={{width: `${getOverseasPercentage()}%`}}
+                ></div>
               </div>
             </div>
           </div>
@@ -103,27 +209,25 @@ export default function Home() {
               客戶轉換漏斗
             </h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-text-primary">有興趣</span>
-                <span className="text-ocean-deep font-semibold">100人</span>
-              </div>
-              <div className="w-full bg-sand-light rounded-full h-2">
-                <div className="bg-sunset-gold h-2 rounded-full" style={{width: '100%'}}></div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-text-primary">報名諮詢</span>
-                <span className="text-ocean-deep font-semibold">45人</span>
-              </div>
-              <div className="w-full bg-sand-light rounded-full h-2">
-                <div className="bg-wave-teal h-2 rounded-full" style={{width: '45%'}}></div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-text-primary">完成報名</span>
-                <span className="text-ocean-deep font-semibold">25人</span>
-              </div>
-              <div className="w-full bg-sand-light rounded-full h-2">
-                <div className="bg-ocean-blue h-2 rounded-full" style={{width: '25%'}}></div>
-              </div>
+              {conversionData.map((item, index) => (
+                <div key={index}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-primary">{item.inquiry_status}</span>
+                    <span className="text-ocean-deep font-semibold">
+                      {item.count}人 ({item.percentage}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-sand-light rounded-full h-2 mt-1">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        index === 0 ? 'bg-sunset-gold' : 
+                        index === 1 ? 'bg-wave-teal' : 'bg-ocean-blue'
+                      }`}
+                      style={{width: `${item.percentage}%`}}
+                    ></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
