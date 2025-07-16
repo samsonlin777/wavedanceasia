@@ -3,6 +3,23 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Ocean Palette */
+  --ocean-deep: #1a365d;
+  --ocean-blue: #2b77a3;
+  --wave-teal: #4fd1c7;
+  --surf-aqua: #9decf9;
+  
+  /* Sand Palette */
+  --sand-warm: #f7fafc;
+  --sand-light: #e2e8f0;
+  --sunset-gold: #fbb040;
+  --coral-pink: #fc8181;
+  
+  /* Text Colors */
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
 }
 
 @theme inline {
@@ -10,6 +27,19 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Custom Colors */
+  --color-ocean-deep: var(--ocean-deep);
+  --color-ocean-blue: var(--ocean-blue);
+  --color-wave-teal: var(--wave-teal);
+  --color-surf-aqua: var(--surf-aqua);
+  --color-sand-warm: var(--sand-warm);
+  --color-sand-light: var(--sand-light);
+  --color-sunset-gold: var(--sunset-gold);
+  --color-coral-pink: var(--coral-pink);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
 }
 
 @media (prefers-color-scheme: dark) {

@@ -8,7 +8,7 @@ export default function Home() {
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center space-x-3">
             <span className="text-2xl">🌊</span>
-            <h1 className="text-2xl font-bold">Wavedance 財務儀表板</h1>
+            <h1 className="text-2xl font-bold">Wavedance 經營儀表板</h1>
           </div>
           <nav className="hidden md:flex space-x-6">
             <a href="#overview" className="hover:text-wave-teal transition-colors">總覽</a>
@@ -62,7 +62,7 @@ export default function Home() {
             </h2>
           </div>
           <div className="h-80 bg-surf-aqua rounded-xl flex items-center justify-center">
-            <div className="text-center text-text-secondary">
+            <div className="text-center text-text-primary">
               <div className="text-4xl mb-4">📈</div>
               <p className="text-lg font-semibold">收入趨勢圖</p>
               <p className="text-sm">連接 Supabase 後顯示實際數據</p>
@@ -80,14 +80,14 @@ export default function Home() {
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">台灣</span>
+                <span className="text-text-primary">台灣</span>
                 <span className="text-ocean-deep font-semibold">35%</span>
               </div>
               <div className="w-full bg-sand-light rounded-full h-3">
                 <div className="bg-wave-teal h-3 rounded-full" style={{width: '35%'}}></div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">海外</span>
+                <span className="text-text-primary">海外</span>
                 <span className="text-ocean-deep font-semibold">65%</span>
               </div>
               <div className="w-full bg-sand-light rounded-full h-3">
@@ -104,21 +104,21 @@ export default function Home() {
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">有興趣</span>
+                <span className="text-text-primary">有興趣</span>
                 <span className="text-ocean-deep font-semibold">100人</span>
               </div>
               <div className="w-full bg-sand-light rounded-full h-2">
                 <div className="bg-sunset-gold h-2 rounded-full" style={{width: '100%'}}></div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">報名諮詢</span>
+                <span className="text-text-primary">報名諮詢</span>
                 <span className="text-ocean-deep font-semibold">45人</span>
               </div>
               <div className="w-full bg-sand-light rounded-full h-2">
                 <div className="bg-wave-teal h-2 rounded-full" style={{width: '45%'}}></div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">完成報名</span>
+                <span className="text-text-primary">完成報名</span>
                 <span className="text-ocean-deep font-semibold">25人</span>
               </div>
               <div className="w-full bg-sand-light rounded-full h-2">
@@ -130,7 +130,7 @@ export default function Home() {
 
         {/* 底部資訊 */}
         <section className="text-center py-8">
-          <p className="text-text-muted text-sm">
+          <p className="text-text-primary text-sm">
             🏄‍♂️ 準備好迎接數據浪潮了嗎？讓我們一起在數據海洋中衝浪！
           </p>
         </section>
