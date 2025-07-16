@@ -6,6 +6,7 @@ interface MetricCardProps {
   trend: string
   icon: string
   trendDirection?: 'up' | 'down' | 'neutral'
+  onClick?: () => void
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({ 
@@ -13,7 +14,8 @@ const MetricCard: React.FC<MetricCardProps> = ({
   value, 
   trend, 
   icon, 
-  trendDirection = 'neutral' 
+  trendDirection = 'neutral',
+  onClick
 }) => {
   const getTrendColor = () => {
     switch (trendDirection) {
@@ -27,7 +29,12 @@ const MetricCard: React.FC<MetricCardProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg border border-sand-light hover:shadow-xl transition-shadow duration-300">
+    <div 
+      className={`bg-white rounded-2xl p-6 shadow-lg border border-sand-light hover:shadow-xl transition-shadow duration-300 ${
+        onClick ? 'cursor-pointer hover:border-wave-teal' : ''
+      }`}
+      onClick={onClick}
+    >
       {/* Header with Icon */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">

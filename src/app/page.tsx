@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import MetricCard from '../components/MetricCard'
 import RevenueChart from '../components/RevenueChart'
 import { getBusinessSummary, getWavedanceData } from '../lib/supabase'
@@ -21,6 +22,7 @@ interface ConversionFunnelData {
 }
 
 export default function Home() {
+  const router = useRouter()
   const [businessData, setBusinessData] = useState<BusinessSummary | null>(null)
   const [conversionData, setConversionData] = useState<ConversionFunnelData[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,6 +128,7 @@ export default function Home() {
             trend="實時數據" 
             icon="👥"
             trendDirection="up"
+            onClick={() => router.push('/customer-details')}
           />
           <MetricCard 
             title="活躍詢問" 
@@ -133,6 +136,7 @@ export default function Home() {
             trend="進行中詢問" 
             icon="💬"
             trendDirection="up"
+            onClick={() => router.push('/customer-details')}
           />
           <MetricCard 
             title="本月收入" 
@@ -140,6 +144,7 @@ export default function Home() {
             trend="本月累計" 
             icon="💰"
             trendDirection="up"
+            onClick={() => router.push('/revenue-details')}
           />
           <MetricCard 
             title="庫存價值" 
@@ -147,6 +152,7 @@ export default function Home() {
             trend="健康狀態" 
             icon="📦"
             trendDirection="neutral"
+            onClick={() => router.push('/inventory-details')}
           />
         </section>
 
