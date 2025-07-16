@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import MetricCard from '../components/MetricCard'
+import RevenueChart from '../components/RevenueChart'
 import { getBusinessSummary, getWavedanceData } from '../lib/supabase'
 
 interface BusinessSummary {
@@ -157,12 +158,8 @@ export default function Home() {
               收入趨勢 - 如海浪般起伏
             </h2>
           </div>
-          <div className="h-80 bg-surf-aqua rounded-xl flex items-center justify-center">
-            <div className="text-center text-text-primary">
-              <div className="text-4xl mb-4">📈</div>
-              <p className="text-lg font-semibold">收入趨勢圖</p>
-              <p className="text-sm">即將加入互動式圖表</p>
-            </div>
+          <div className="bg-white rounded-xl p-4">
+            <RevenueChart />
           </div>
         </section>
 
