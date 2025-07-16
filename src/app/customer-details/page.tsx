@@ -2,66 +2,31 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
+import { getWavedanceData } from '../../lib/supabase'
 
-interface CustomerRecord {
-  id: string
-  name: string
-  email: string
-  phone: string
-  surf_level: string
-  first_contact_source: string
-  created_at: string
-}
-
-interface InquiryRecord {
-  id: string
-  customer_id: string
-  inquiry_date: string
+interface ConversionFunnelData {
   inquiry_status: string
-  inquiry_content: string
-  course_interest: string
-  expected_date: string
-  follow_up_notes: string
-  created_at: string
-  updated_at: string
+  count: number
+  percentage: number
 }
 
 export default function CustomerDetailsPage() {
   const router = useRouter()
-  const [customers, setCustomers] = useState<CustomerRecord[]>([])
-  const [inquiries, setInquiries] = useState<InquiryRecord[]>([])
+  const [funnelData, setFunnelData] = useState<ConversionFunnelData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'customers' | 'inquiries'>('customers')
 
   useEffect(() => {
     const fetchCustomerData = async () => {
       try {
         setLoading(true)
         
-        // 獲取客戶資料
-        const { data: customerData, error: customerError } = await supabase
-          .from('wavedanceasia.customers')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (customerError) {
-          throw customerError
+        // 使用轉換漏斗資料
+        const data = await getWavedanceData('conversion_funnel')
+        
+        if (data && Array.isArray(data)) {
+          setFunnelData(data)
         }
-
-        // 獲取詢問資料
-        const { data: inquiryData, error: inquiryError } = await supabase
-          .from('wavedanceasia.course_inquiries')
-          .select('*')
-          .order('inquiry_date', { ascending: false })
-
-        if (inquiryError) {
-          throw inquiryError
-        }
-
-        setCustomers(customerData || [])
-        setInquiries(inquiryData || [])
       } catch (err) {
         console.error('載入客戶資料失敗:', err)
         setError('無法載入客戶資料')
@@ -72,10 +37,6 @@ export default function CustomerDetailsPage() {
 
     fetchCustomerData()
   }, [])
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-TW')
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -88,24 +49,36 @@ export default function CustomerDetailsPage() {
     }
   }
 
-  const getSurfLevelColor = (level: string) => {
-    switch (level) {
-      case '初學者': return 'bg-sunset-gold text-white'
-      case '中階': return 'bg-wave-teal text-white'
-      case '高階': return 'bg-ocean-blue text-white'
-      default: return 'bg-sand-light text-text-primary'
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case '已報名(訂金ok)': return '✅'
+      case '有興趣': return '💡'
+      case '需要追蹤': return '📞'
+      case '已完成訂購': return '🎉'
+      case '已取消': return '❌'
+      default: return '❓'
     }
   }
 
-  const getSourceIcon = (source: string) => {
-    switch (source) {
-      case 'Facebook': return '📘'
-      case 'Instagram': return '📷'
-      case 'Google': return '🔍'
-      case '朋友推薦': return '👥'
-      case '網站': return '🌐'
-      default: return '❓'
+  const getStatusDescription = (status: string) => {
+    switch (status) {
+      case '已報名(訂金ok)': return '已確認報名並繳納訂金，等待課程開始'
+      case '有興趣': return '對課程表示興趣，但尚未進一步聯繫'
+      case '需要追蹤': return '需要銷售團隊主動聯繫追蹤'
+      case '已完成訂購': return '已完成整個課程流程'
+      case '已取消': return '取消課程報名'
+      default: return '未知狀態'
     }
+  }
+
+  const getTotalCustomers = () => {
+    return funnelData.reduce((sum, item) => sum + item.count, 0)
+  }
+
+  const getConversionRate = () => {
+    const completed = funnelData.find(item => item.inquiry_status === '已報名(訂金ok)')?.count || 0
+    const total = getTotalCustomers()
+    return total > 0 ? Math.round((completed / total) * 100) : 0
   }
 
   if (loading) {
@@ -143,145 +116,112 @@ export default function CustomerDetailsPage() {
               ← 返回
             </button>
             <span className="text-2xl">👥</span>
-            <h1 className="text-2xl font-bold">客戶管理</h1>
+            <h1 className="text-2xl font-bold">客戶轉換分析</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm">總客戶: {customers.length}</span>
-            <span className="text-sm">待追蹤: {inquiries.filter(i => i.inquiry_status === '需要追蹤').length}</span>
+            <span className="text-sm">總客戶: {getTotalCustomers()}</span>
+            <span className="text-sm">轉換率: {getConversionRate()}%</span>
           </div>
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="max-w-7xl mx-auto pt-6 px-6">
-        <div className="flex space-x-1 bg-white rounded-lg p-1 mb-6 shadow-sm">
-          <button
-            onClick={() => setActiveTab('customers')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'customers'
-                ? 'bg-ocean-deep text-white'
-                : 'text-text-secondary hover:text-ocean-deep'
-            }`}
-          >
-            客戶列表 ({customers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('inquiries')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'inquiries'
-                ? 'bg-ocean-deep text-white'
-                : 'text-text-secondary hover:text-ocean-deep'
-            }`}
-          >
-            詢問追蹤 ({inquiries.length})
-          </button>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 pb-6">
-        <div className="bg-white rounded-2xl shadow-lg border border-sand-light overflow-hidden">
-          {activeTab === 'customers' ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-surf-aqua">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      客戶資訊
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      衝浪等級
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      來源
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      加入時間
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-sand-light">
-                  {customers.map((customer) => (
-                    <tr key={customer.id} className="hover:bg-surf-aqua hover:bg-opacity-30">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-ocean-deep">{customer.name}</div>
-                          <div className="text-sm text-text-secondary">{customer.email}</div>
-                          <div className="text-sm text-text-secondary">{customer.phone}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSurfLevelColor(customer.surf_level)}`}>
-                          {customer.surf_level}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-text-primary">
-                        {getSourceIcon(customer.first_contact_source)} {customer.first_contact_source}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-text-primary">
-                        {formatDate(customer.created_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <main className="max-w-7xl mx-auto p-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg p-6 shadow-lg border border-sand-light text-center">
+            <div className="text-3xl font-bold text-ocean-deep">{getTotalCustomers()}</div>
+            <div className="text-sm text-text-secondary mt-1">總客戶數</div>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-lg border border-sand-light text-center">
+            <div className="text-3xl font-bold text-wave-teal">{getConversionRate()}%</div>
+            <div className="text-sm text-text-secondary mt-1">轉換率</div>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-lg border border-sand-light text-center">
+            <div className="text-3xl font-bold text-coral-pink">
+              {funnelData.find(item => item.inquiry_status === '需要追蹤')?.count || 0}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-surf-aqua">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      詢問日期
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      狀態
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      課程興趣
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      預期日期
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                      追蹤備註
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-sand-light">
-                  {inquiries.map((inquiry) => (
-                    <tr key={inquiry.id} className="hover:bg-surf-aqua hover:bg-opacity-30">
-                      <td className="px-6 py-4 text-sm text-text-primary">
-                        {formatDate(inquiry.inquiry_date)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(inquiry.inquiry_status)}`}>
-                          {inquiry.inquiry_status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-text-primary">
-                        {inquiry.course_interest}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-text-primary">
-                        {inquiry.expected_date ? formatDate(inquiry.expected_date) : '未指定'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-text-primary max-w-xs truncate">
-                        {inquiry.follow_up_notes || '無備註'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="text-sm text-text-secondary mt-1">待追蹤</div>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-lg border border-sand-light text-center">
+            <div className="text-3xl font-bold text-sunset-gold">
+              {funnelData.find(item => item.inquiry_status === '已報名(訂金ok)')?.count || 0}
             </div>
-          )}
+            <div className="text-sm text-text-secondary mt-1">已報名</div>
+          </div>
+        </div>
 
-          {((activeTab === 'customers' && customers.length === 0) || 
-            (activeTab === 'inquiries' && inquiries.length === 0)) && (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">👥</div>
-              <p className="text-text-secondary">暫無資料</p>
+        {/* Conversion Funnel */}
+        <div className="bg-white rounded-2xl shadow-lg border border-sand-light p-8">
+          <h2 className="text-2xl font-bold text-ocean-deep mb-8 text-center">
+            🎯 客戶轉換漏斗分析
+          </h2>
+          
+          <div className="space-y-6">
+            {funnelData.map((item, index) => (
+              <div key={index} className="relative">
+                {/* Status Card */}
+                <div className="bg-surf-aqua rounded-xl p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-3xl">{getStatusIcon(item.inquiry_status)}</div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-ocean-deep">
+                          {item.inquiry_status}
+                        </h3>
+                        <p className="text-sm text-text-secondary">
+                          {getStatusDescription(item.inquiry_status)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-ocean-deep">{item.count}</div>
+                      <div className="text-sm text-text-secondary">人</div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-sand-light rounded-full h-4 mb-2">
+                    <div 
+                      className="bg-wave-teal h-4 rounded-full transition-all duration-1000 ease-out"
+                      style={{width: `${item.percentage}%`}}
+                    ></div>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm text-text-secondary">
+                    <span>佔總數比例</span>
+                    <span className="font-semibold">{item.percentage}%</span>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                {index < funnelData.length - 1 && (
+                  <div className="flex justify-center my-4">
+                    <div className="text-2xl text-ocean-blue">↓</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Insights */}
+          <div className="mt-8 p-6 bg-surf-aqua rounded-xl">
+            <h3 className="text-lg font-semibold text-ocean-deep mb-4">💡 分析洞察</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-white p-4 rounded-lg">
+                <div className="font-semibold text-wave-teal">轉換表現</div>
+                <div className="text-text-secondary">
+                  {getConversionRate()}% 的客戶成功轉換為付費學員，表現優異
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg">
+                <div className="font-semibold text-coral-pink">需要關注</div>
+                <div className="text-text-secondary">
+                  {funnelData.find(item => item.inquiry_status === '需要追蹤')?.count || 0} 位客戶需要主動追蹤
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </main>
     </div>

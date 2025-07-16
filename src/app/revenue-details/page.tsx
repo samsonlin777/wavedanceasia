@@ -2,47 +2,34 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
+import { getWavedanceData } from '../../lib/supabase'
 
-interface RevenueRecord {
-  id: string
+interface DailyRevenueData {
   transaction_date: string
-  transaction_type: string
-  category: string
-  amount: number
-  region: string
-  description: string
-  payment_method: string
-  accounting_period: string
-  created_at: string
+  daily_income: number
+  daily_expenses: number
+  net_income: number
+  income_transactions: number
+  expense_transactions: number
 }
 
 export default function RevenueDetailsPage() {
   const router = useRouter()
-  const [revenueData, setRevenueData] = useState<RevenueRecord[]>([])
+  const [revenueData, setRevenueData] = useState<DailyRevenueData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7))
 
   useEffect(() => {
     const fetchRevenueDetails = async () => {
       try {
         setLoading(true)
         
-        // 使用 service role key 直接查詢資料表
-        const { data, error } = await supabase
-          .from('wavedanceasia.financial_records')
-          .select('*')
-          .eq('transaction_type', 'income')
-          .gte('transaction_date', `${currentMonth}-01`)
-          .lte('transaction_date', `${currentMonth}-31`)
-          .order('transaction_date', { ascending: false })
-
-        if (error) {
-          throw error
+        // 使用 daily_revenue 視圖
+        const data = await getWavedanceData('daily_revenue', 90) // 最近90天
+        
+        if (data && Array.isArray(data)) {
+          setRevenueData(data)
         }
-
-        setRevenueData(data || [])
       } catch (err) {
         console.error('載入收入明細失敗:', err)
         setError('無法載入收入明細')
@@ -52,7 +39,7 @@ export default function RevenueDetailsPage() {
     }
 
     fetchRevenueDetails()
-  }, [currentMonth])
+  }, [])
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('zh-TW', {
@@ -66,23 +53,33 @@ export default function RevenueDetailsPage() {
     return new Date(dateString).toLocaleDateString('zh-TW')
   }
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case '海外團': return 'bg-ocean-blue text-white'
-      case '課程': return 'bg-wave-teal text-white'
-      case '住宿': return 'bg-sunset-gold text-white'
-      case '商品': return 'bg-coral-pink text-white'
-      default: return 'bg-sand-light text-text-primary'
+  const getIncomeIcon = (income: number) => {
+    if (income > 50000) return '🎉'
+    if (income > 20000) return '💰'
+    if (income > 5000) return '💵'
+    if (income > 0) return '💸'
+    return '📊'
+  }
+
+  const getIncomeColor = (income: number) => {
+    if (income > 50000) return 'text-sunset-gold'
+    if (income > 20000) return 'text-wave-teal'
+    if (income > 5000) return 'text-ocean-blue'
+    if (income > 0) return 'text-text-primary'
+    return 'text-text-secondary'
+  }
+
+  const getTotalStats = () => {
+    return {
+      totalIncome: revenueData.reduce((sum, day) => sum + day.daily_income, 0),
+      totalExpenses: revenueData.reduce((sum, day) => sum + day.daily_expenses, 0),
+      totalNet: revenueData.reduce((sum, day) => sum + day.net_income, 0),
+      totalTransactions: revenueData.reduce((sum, day) => sum + day.income_transactions, 0),
+      activeDays: revenueData.filter(day => day.daily_income > 0).length
     }
   }
 
-  const getRegionFlag = (region: string) => {
-    return region === 'taiwan' ? '🇹🇼' : '🌍'
-  }
-
-  const getTotalAmount = () => {
-    return revenueData.reduce((sum, record) => sum + record.amount, 0)
-  }
+  const stats = getTotalStats()
 
   if (loading) {
     return (
@@ -119,50 +116,48 @@ export default function RevenueDetailsPage() {
               ← 返回
             </button>
             <span className="text-2xl">💰</span>
-            <h1 className="text-2xl font-bold">收入明細</h1>
+            <h1 className="text-2xl font-bold">收入明細分析</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <input
-              type="month"
-              value={currentMonth}
-              onChange={(e) => setCurrentMonth(e.target.value)}
-              className="px-3 py-2 bg-ocean-blue text-white rounded-lg border-none"
-            />
-            <span className="text-sm">總計: {formatAmount(getTotalAmount())}</span>
+            <span className="text-sm">總收入: {formatAmount(stats.totalIncome)}</span>
+            <span className="text-sm">活躍天數: {stats.activeDays}</span>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-sand-light text-center">
+            <div className="text-2xl font-bold text-wave-teal">{formatAmount(stats.totalIncome)}</div>
+            <div className="text-sm text-text-secondary">總收入</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-sand-light text-center">
+            <div className="text-2xl font-bold text-coral-pink">{formatAmount(stats.totalExpenses)}</div>
+            <div className="text-sm text-text-secondary">總支出</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-sand-light text-center">
+            <div className="text-2xl font-bold text-ocean-blue">{formatAmount(stats.totalNet)}</div>
+            <div className="text-sm text-text-secondary">淨收入</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-sand-light text-center">
+            <div className="text-2xl font-bold text-sunset-gold">{stats.totalTransactions}</div>
+            <div className="text-sm text-text-secondary">總交易數</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-sand-light text-center">
+            <div className="text-2xl font-bold text-ocean-deep">{stats.activeDays}</div>
+            <div className="text-sm text-text-secondary">活躍天數</div>
+          </div>
+        </div>
+
+        {/* Revenue Timeline */}
         <div className="bg-white rounded-2xl shadow-lg border border-sand-light overflow-hidden">
-          {/* Summary Cards */}
           <div className="p-6 border-b border-sand-light">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-ocean-deep">{revenueData.length}</div>
-                <div className="text-sm text-text-secondary">總交易數</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-wave-teal">{formatAmount(getTotalAmount())}</div>
-                <div className="text-sm text-text-secondary">總收入</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-sunset-gold">
-                  {formatAmount(getTotalAmount() / (revenueData.length || 1))}
-                </div>
-                <div className="text-sm text-text-secondary">平均客單價</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-coral-pink">
-                  {revenueData.filter(r => r.region === 'overseas').length}
-                </div>
-                <div className="text-sm text-text-secondary">海外交易數</div>
-              </div>
-            </div>
+            <h2 className="text-xl font-bold text-ocean-deep">📊 每日收入時間軸</h2>
+            <p className="text-sm text-text-secondary mt-1">最近 90 天的收入記錄</p>
           </div>
 
-          {/* Records Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-surf-aqua">
@@ -171,44 +166,54 @@ export default function RevenueDetailsPage() {
                     日期
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                    類別
+                    收入
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                    金額
+                    支出
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                    地區
+                    淨收入
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                    付款方式
+                    交易數
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-ocean-deep uppercase tracking-wider">
-                    描述
+                    表現
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sand-light">
-                {revenueData.map((record) => (
-                  <tr key={record.id} className="hover:bg-surf-aqua hover:bg-opacity-30">
+                {revenueData.map((day, index) => (
+                  <tr key={index} className="hover:bg-surf-aqua hover:bg-opacity-30">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                      {formatDate(record.transaction_date)}
+                      {formatDate(day.transaction_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(record.category)}`}>
-                        {record.category}
-                      </span>
+                      <div className="flex items-center">
+                        <span className="text-lg mr-2">{getIncomeIcon(day.daily_income)}</span>
+                        <span className={`text-sm font-medium ${getIncomeColor(day.daily_income)}`}>
+                          {formatAmount(day.daily_income)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ocean-deep">
-                      {formatAmount(record.amount)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-coral-pink">
+                      {formatAmount(day.daily_expenses)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ocean-blue">
+                      {formatAmount(day.net_income)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                      {getRegionFlag(record.region)} {record.region === 'taiwan' ? '台灣' : '海外'}
+                      收入: {day.income_transactions} | 支出: {day.expense_transactions}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                      {record.payment_method || '未指定'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-primary max-w-xs truncate">
-                      {record.description || '無描述'}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="w-16 bg-sand-light rounded-full h-2">
+                        <div 
+                          className="bg-wave-teal h-2 rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(100, (day.daily_income / Math.max(...revenueData.map(d => d.daily_income))) * 100)}%`
+                          }}
+                        ></div>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -219,9 +224,37 @@ export default function RevenueDetailsPage() {
           {revenueData.length === 0 && (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">📊</div>
-              <p className="text-text-secondary">該月份沒有收入記錄</p>
+              <p className="text-text-secondary">沒有收入記錄</p>
             </div>
           )}
+        </div>
+
+        {/* Revenue Insights */}
+        <div className="mt-6 bg-white rounded-2xl shadow-lg border border-sand-light p-6">
+          <h3 className="text-lg font-bold text-ocean-deep mb-4">💡 收入分析洞察</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-surf-aqua p-4 rounded-lg">
+              <div className="text-sm font-semibold text-ocean-deep">日均收入</div>
+              <div className="text-2xl font-bold text-wave-teal">
+                {formatAmount(stats.totalIncome / Math.max(stats.activeDays, 1))}
+              </div>
+              <div className="text-xs text-text-secondary">基於 {stats.activeDays} 個活躍天數</div>
+            </div>
+            <div className="bg-surf-aqua p-4 rounded-lg">
+              <div className="text-sm font-semibold text-ocean-deep">平均交易金額</div>
+              <div className="text-2xl font-bold text-ocean-blue">
+                {formatAmount(stats.totalIncome / Math.max(stats.totalTransactions, 1))}
+              </div>
+              <div className="text-xs text-text-secondary">每筆交易平均金額</div>
+            </div>
+            <div className="bg-surf-aqua p-4 rounded-lg">
+              <div className="text-sm font-semibold text-ocean-deep">收支比例</div>
+              <div className="text-2xl font-bold text-sunset-gold">
+                {stats.totalExpenses > 0 ? (stats.totalIncome / stats.totalExpenses).toFixed(1) : '∞'}:1
+              </div>
+              <div className="text-xs text-text-secondary">收入對支出的比例</div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
