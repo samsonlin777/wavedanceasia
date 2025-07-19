@@ -9,7 +9,7 @@ export default function CoffeePartyPage() {
       <section className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            浪花舞 Coffee Party 派對 🌊☕
+            in search of summit X 浪花舞 Coffee Party 🌊☕
           </h1>
           <p className="text-xl md:text-2xl mb-4 text-blue-100">
             &quot;Buzzed on coffee? Nah, but you. But I&apos;m off surfing.&quot;

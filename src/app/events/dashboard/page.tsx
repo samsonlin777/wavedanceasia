@@ -3,27 +3,28 @@
 import { useEffect, useState } from 'react'
 import { supabaseWDA } from '@/lib/supabase-wda'
 
-interface Registration {
+interface PaymentOrder {
   id: number
-  participant_name: string
-  participant_email: string
-  participant_phone?: string
+  order_number: string
+  buyer_name: string
+  buyer_email: string
+  buyer_phone?: string
   instagram_handle?: string
   participant_count?: number
-  ticket_type?: string
+  product_name: string
   payment_method?: string
   payment_status: string
-  total_amount?: number
+  amount?: number
   transfer_amount?: string
-  transfer_last_five?: string
+  sender_account_last5?: string
   created_at: string
-  custom_fields?: Record<string, unknown>
-  event_id?: number
-  notes?: string
+  confirmed_at?: string
+  confirmed_by?: string
+  registration_id?: number
 }
 
 export default function EventDashboard() {
-  const [registrations, setRegistrations] = useState<Registration[]>([])
+  const [payments, setPayments] = useState<PaymentOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [checkedIn, setCheckedIn] = useState<Set<number>>(new Set())
   const [stats, setStats] = useState({
@@ -45,26 +46,26 @@ export default function EventDashboard() {
       setCheckedIn(new Set(JSON.parse(savedCheckedIn)))
     }
     
-    fetchRegistrations()
+    fetchPayments()
     // 每30秒自動刷新
-    const interval = setInterval(fetchRegistrations, 30000)
+    const interval = setInterval(fetchPayments, 30000)
     return () => clearInterval(interval)
   }, [])
 
-  const fetchRegistrations = async () => {
+  const fetchPayments = async () => {
     try {
-      // 使用新的 RPC 函數來獲取報名資料
-      const { data, error } = await supabaseWDA.rpc('wavedanceasia_get_dashboard_registrations', {
-        p_event_code: 'COFFEE-2025-0726'
+      // 使用新的基於 payment_orders 的 RPC 函數
+      const { data, error } = await supabaseWDA.rpc('wavedanceasia_get_payment_dashboard', {
+        p_event_name: 'Coffee Party'
       })
 
       if (error) {
-        console.error('Error fetching registrations:', error)
+        console.error('Error fetching payments:', error)
         throw error
       }
       
-      console.log('Dashboard registrations data:', data)
-      setRegistrations(data || [])
+      console.log('Payment dashboard data:', data)
+      setPayments(data || [])
 
       // 計算統計數據
       const stats = (data || []).reduce((acc: {
@@ -77,32 +78,41 @@ export default function EventDashboard() {
         pendingRevenue: number
         confirmedRevenue: number
         checkedIn: number
-      }, reg: Registration) => {
+      }, payment: PaymentOrder) => {
         acc.total++
         
-        const participantCount = reg.participant_count || 1
+        const participantCount = payment.participant_count || 1
         acc.totalParticipants += participantCount
 
-        // 計算已簽到人數
+        // 計算已簽到人數（使用 registration_id 或 order_number）
         const savedCheckedIn = localStorage.getItem('coffeePartyCheckedIn')
         const checkedInSet = savedCheckedIn ? new Set(JSON.parse(savedCheckedIn)) : new Set()
-        if (checkedInSet.has(reg.id)) {
+        if (checkedInSet.has(payment.id)) {
           acc.checkedIn++
         }
 
-        if (reg.payment_method === 'cash') {
+        // 計算正確的總金額
+        const totalAmount = payment.transfer_amount ? 
+          parseFloat(payment.transfer_amount) : 
+          (payment.amount || 0) * participantCount
+
+        if (payment.payment_method === 'cash') {
           acc.onsite++
-          acc.totalRevenue += 400 * participantCount // 現場價
-        } else if (reg.payment_status === 'pending' || reg.payment_status === 'processing') {
-          acc.pendingTransfer++
-          const amount = reg.total_amount || 300 * participantCount // 預售價
-          acc.pendingRevenue += amount
-          acc.totalRevenue += amount
-        } else if (reg.payment_status === 'completed') {
-          acc.confirmedTransfer++
-          const amount = reg.total_amount || 300 * participantCount
-          acc.confirmedRevenue += amount
-          acc.totalRevenue += amount
+          if (payment.payment_status === 'completed') {
+            acc.confirmedRevenue += totalAmount
+          } else {
+            acc.pendingRevenue += totalAmount
+          }
+          acc.totalRevenue += totalAmount
+        } else if (payment.payment_method === 'transfer') {
+          if (payment.payment_status === 'completed') {
+            acc.confirmedTransfer++
+            acc.confirmedRevenue += totalAmount
+          } else {
+            acc.pendingTransfer++
+            acc.pendingRevenue += totalAmount
+          }
+          acc.totalRevenue += totalAmount
         }
 
         return acc
@@ -120,18 +130,18 @@ export default function EventDashboard() {
 
       setStats(stats)
     } catch (error) {
-      console.error('Error fetching registrations:', error)
+      console.error('Error fetching payments:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const toggleCheckIn = (registrationId: number) => {
+  const toggleCheckIn = (paymentId: number) => {
     const newCheckedIn = new Set(checkedIn)
-    if (newCheckedIn.has(registrationId)) {
-      newCheckedIn.delete(registrationId)
+    if (newCheckedIn.has(paymentId)) {
+      newCheckedIn.delete(paymentId)
     } else {
-      newCheckedIn.add(registrationId)
+      newCheckedIn.add(paymentId)
     }
     setCheckedIn(newCheckedIn)
     
@@ -139,20 +149,20 @@ export default function EventDashboard() {
     localStorage.setItem('coffeePartyCheckedIn', JSON.stringify(Array.from(newCheckedIn)))
     
     // 重新計算統計
-    fetchRegistrations()
+    fetchPayments()
   }
 
-  const getStatusBadge = (registration: Registration) => {
-    const isCheckedIn = checkedIn.has(registration.id)
+  const getStatusBadge = (payment: PaymentOrder) => {
+    const isCheckedIn = checkedIn.has(payment.id)
     
     return (
       <div className="flex flex-col gap-1">
         {/* 付款狀態 */}
-        {registration.payment_method === 'cash' ? (
+        {payment.payment_method === 'cash' ? (
           <span className="px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
             現場付款
           </span>
-        ) : registration.payment_status === 'completed' ? (
+        ) : payment.payment_status === 'completed' ? (
           <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
             已確認匯款
           </span>
@@ -168,6 +178,13 @@ export default function EventDashboard() {
             ✓ 已簽到
           </span>
         )}
+        
+        {/* 已確認標記 */}
+        {payment.confirmed_at && (
+          <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+            {payment.confirmed_by}
+          </span>
+        )}
       </div>
     )
   }
@@ -181,22 +198,30 @@ export default function EventDashboard() {
     })
   }
 
-  const updatePaymentStatus = async (registrationId: number, newStatus: string) => {
+  const updatePaymentStatus = async (paymentId: number, newStatus: string) => {
     try {
-      const { error } = await supabaseWDA.rpc('wavedanceasia_update_registration_status', {
-        p_registration_id: registrationId,
+      const { error } = await supabaseWDA.rpc('wavedanceasia_update_payment_status', {
+        p_order_id: paymentId,
         p_payment_status: newStatus,
-        p_notes: `付款狀態更新為：${newStatus === 'completed' ? '已確認' : '待確認'}`
+        p_confirmed_by: 'Dashboard User' // 之後可以改成實際操作人員
       })
 
       if (error) throw error
       
       // 刷新資料
-      fetchRegistrations()
+      fetchPayments()
     } catch (error) {
       console.error('Error updating payment status:', error)
       alert('更新失敗，請稍後再試')
     }
+  }
+
+  // 計算實際金額
+  const calculateTotalAmount = (payment: PaymentOrder) => {
+    if (payment.transfer_amount) {
+      return parseFloat(payment.transfer_amount)
+    }
+    return (payment.amount || 0) * (payment.participant_count || 1)
   }
 
   if (loading) {
@@ -235,7 +260,9 @@ export default function EventDashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-sm font-medium text-gray-500">現場付款</h3>
             <p className="text-3xl font-bold text-orange-600">{stats.onsite}</p>
-            <p className="text-sm text-gray-600 mt-1">NT$ {stats.onsite * 400}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {stats.onsite > 0 ? `每人 NT$ 400` : '-'}
+            </p>
           </div>
           
           <div className="bg-white rounded-lg shadow p-6">
@@ -254,9 +281,9 @@ export default function EventDashboard() {
         {/* 報名表格 */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-800">報名明細</h2>
+            <h2 className="text-xl font-semibold text-gray-800">付款明細</h2>
             <button 
-              onClick={fetchRegistrations}
+              onClick={fetchPayments}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
               🔄 重新整理
@@ -269,6 +296,9 @@ export default function EventDashboard() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     簽到
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    訂單編號
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     報名時間
@@ -294,13 +324,13 @@ export default function EventDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {registrations.map((registration) => {
-                  const isCheckedIn = checkedIn.has(registration.id)
+                {payments.map((payment) => {
+                  const isCheckedIn = checkedIn.has(payment.id)
                   return (
-                    <tr key={registration.id} className={`hover:bg-gray-50 ${isCheckedIn ? 'bg-blue-50' : ''}`}>
+                    <tr key={payment.id} className={`hover:bg-gray-50 ${isCheckedIn ? 'bg-blue-50' : ''}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
-                          onClick={() => toggleCheckIn(registration.id)}
+                          onClick={() => toggleCheckIn(payment.id)}
                           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                             isCheckedIn 
                               ? 'bg-blue-600 text-white hover:bg-blue-700' 
@@ -310,57 +340,60 @@ export default function EventDashboard() {
                           {isCheckedIn ? '✓ 已到' : '簽到'}
                         </button>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {payment.order_number}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(registration.created_at)}
+                        {formatDate(payment.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {registration.participant_name}
+                          {payment.buyer_name}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {registration.instagram_handle ? `@${registration.instagram_handle}` : '-'}
+                          {payment.instagram_handle ? `@${payment.instagram_handle}` : '-'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {registration.participant_email}
+                          {payment.buyer_email}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {registration.participant_phone || '-'}
+                          {payment.buyer_phone || '-'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {registration.participant_count || 1} 人
+                          {payment.participant_count || 1} 人
                         </div>
                         <div className="text-sm font-semibold text-blue-600">
-                          NT$ {registration.total_amount || ((registration.participant_count || 1) * (registration.ticket_type === 'onsite' ? 400 : 300))}
+                          NT$ {calculateTotalAmount(payment)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {registration.payment_method === 'transfer' ? (
+                        {payment.payment_method === 'transfer' ? (
                           <div>
                             <div className="text-sm text-gray-900">
-                              金額: {registration.transfer_amount || '-'}
+                              金額: {payment.transfer_amount || payment.amount}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              後五碼: {registration.transfer_last_five || '-'}
+                            <div className="text-sm font-medium text-gray-700">
+                              後五碼: {payment.sender_account_last5 || '-'}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-500">-</span>
+                          <span className="text-sm text-gray-500">現場收款</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(registration)}
+                        {getStatusBadge(payment)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex flex-col gap-2">
                           {/* 轉帳確認按鈕 */}
-                          {registration.payment_method === 'transfer' && 
-                           (registration.payment_status === 'pending' || registration.payment_status === 'processing') && (
+                          {payment.payment_method === 'transfer' && 
+                           payment.payment_status === 'pending' && (
                             <button
-                              onClick={() => updatePaymentStatus(registration.id, 'completed')}
+                              onClick={() => updatePaymentStatus(payment.id, 'completed')}
                               className="text-green-600 hover:text-green-900 font-medium"
                             >
                               確認匯款
@@ -368,11 +401,11 @@ export default function EventDashboard() {
                           )}
                           
                           {/* 現場收款確認按鈕 */}
-                          {registration.payment_method === 'cash' && 
-                           registration.payment_status !== 'completed' && 
+                          {payment.payment_method === 'cash' && 
+                           payment.payment_status === 'pending' && 
                            isCheckedIn && (
                             <button
-                              onClick={() => updatePaymentStatus(registration.id, 'completed')}
+                              onClick={() => updatePaymentStatus(payment.id, 'completed')}
                               className="text-blue-600 hover:text-blue-900 font-medium"
                             >
                               確認收款
@@ -380,9 +413,9 @@ export default function EventDashboard() {
                           )}
                           
                           {/* 取消確認按鈕 */}
-                          {registration.payment_status === 'completed' && (
+                          {payment.payment_status === 'completed' && (
                             <button
-                              onClick={() => updatePaymentStatus(registration.id, 'processing')}
+                              onClick={() => updatePaymentStatus(payment.id, 'pending')}
                               className="text-gray-600 hover:text-gray-900 font-medium"
                             >
                               取消確認
@@ -396,31 +429,49 @@ export default function EventDashboard() {
               </tbody>
             </table>
             
-            {registrations.length === 0 && (
+            {payments.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                目前還沒有報名資料
+                目前還沒有付款資料
               </div>
             )}
           </div>
         </div>
 
-        {/* 簽到統計資訊 */}
-        <div className="mt-6 bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">簽到統計</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">已簽到人數</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.checkedIn} / {stats.total}</p>
+        {/* 統計資訊 */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 簽到統計 */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">簽到統計</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">已簽到人數</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.checkedIn} / {stats.total}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">簽到率</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0}%
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">簽到率</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0}%
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">預計總收入</p>
-              <p className="text-2xl font-bold text-blue-600">NT$ {stats.totalRevenue}</p>
+          </div>
+
+          {/* 收款統計 */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">收款統計</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">預計總收入</span>
+                <span className="font-semibold">NT$ {stats.totalRevenue}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">已確認收入</span>
+                <span className="font-semibold text-green-600">NT$ {stats.confirmedRevenue}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">待確認收入</span>
+                <span className="font-semibold text-yellow-600">NT$ {stats.pendingRevenue}</span>
+              </div>
             </div>
           </div>
         </div>
