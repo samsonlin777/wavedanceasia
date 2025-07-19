@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 // 活動配置
 const eventConfigs = {
   'coffee-party': {
-    title: '浪花舞 Coffee Party 派對 🌊☕',
+    title: 'in search of summit X 浪花舞 Coffee Party🌊☕',
     date: '2025/07/26 (週六) 8:30',
     location: '浪花舞往海邊藝文聚落',
     description: 'DJ Louis 現場演出 × 海邊咖啡時光',
@@ -21,6 +21,10 @@ function RegistrationForm() {
   const searchParams = useSearchParams()
   const eventId = searchParams.get('event') || 'coffee-party'
   const eventConfig = eventConfigs[eventId as keyof typeof eventConfigs]
+  
+  useEffect(() => {
+    document.title = 'Coffee Party 報名表單 | 浪花舞'
+  }, [])
   
   const [formData, setFormData] = useState({
     name: '',

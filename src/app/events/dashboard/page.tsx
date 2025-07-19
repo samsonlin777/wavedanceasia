@@ -27,6 +27,7 @@ export default function EventDashboard() {
   const [payments, setPayments] = useState<PaymentOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [checkedIn, setCheckedIn] = useState<Set<number>>(new Set())
+  
   const [stats, setStats] = useState({
     total: 0,
     totalParticipants: 0,
@@ -40,6 +41,7 @@ export default function EventDashboard() {
   })
 
   useEffect(() => {
+    document.title = 'Coffee Party 管理儀表板 | 浪花舞'
     // 從 localStorage 載入已簽到的資料
     const savedCheckedIn = localStorage.getItem('coffeePartyCheckedIn')
     if (savedCheckedIn) {

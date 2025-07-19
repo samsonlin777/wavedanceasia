@@ -1,8 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect } from 'react'
 
 export default function CoffeePartyPage() {
+  useEffect(() => {
+    document.title = 'in search of summit X 浪花舞 Coffee Party | 浪花舞'
+  }, [])
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
       {/* Hero Section */}
