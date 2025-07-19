@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createWDARegistration, getWDAEventDetail, ensureCoffeePartyExists } from '@/lib/supabase-wda'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,31 +13,62 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 這裡暫時先回傳成功，等 RPC 函數建立完成後再整合
-    console.log('收到報名資料:', body)
+    // 確保 Coffee Party 活動存在
+    if (body.eventCode === 'coffee-party') {
+      await ensureCoffeePartyExists()
+    }
+
+    // 取得活動詳情
+    const eventDetail = await getWDAEventDetail(body.eventCode === 'coffee-party' ? 'COFFEE-2025-0726' : body.eventCode)
     
-    // TODO: 當小克建立完 RPC 函數後，在這裡整合
-    // const { data, error } = await supabaseWDA.rpc('wavedanceasia_create_registration', {
-    //   p_event_code: body.eventCode,
-    //   p_participant_name: body.name,
-    //   p_participant_email: body.email,
-    //   p_participant_phone: body.phone,
-    //   p_instagram_id: body.instagramId,
-    //   p_payment_type: body.paymentType,
-    //   p_notes: body.notes
-    // })
-    
-    // if (error) {
-    //   throw error
-    // }
+    if (!eventDetail) {
+      return NextResponse.json(
+        { success: false, message: '找不到指定的活動' },
+        { status: 404 }
+      )
+    }
+
+    // 建立報名記錄
+    const registrationId = await createWDARegistration({
+      eventId: eventDetail.id,
+      participantName: body.name,
+      participantEmail: body.email,
+      participantPhone: body.phone,
+      ticketType: body.paymentType || 'early_bird',
+      paymentMethod: 'transfer',
+      customFields: {
+        instagram_id: body.instagramId,
+        payment_type: body.paymentType,
+        form_source: 'website'
+      },
+      notes: body.notes
+    })
 
     return NextResponse.json({
       success: true,
-      message: '報名成功！我們會盡快與您聯繫確認。'
+      message: '報名成功！請依照活動頁面的指示完成轉帳付款。',
+      registrationId
     })
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('報名處理錯誤:', error)
+    
+    // 處理特定錯誤
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage.includes('活動已額滿')) {
+      return NextResponse.json(
+        { success: false, message: '很抱歉，活動已額滿！' },
+        { status: 400 }
+      )
+    }
+    
+    if (errorMessage.includes('活動不存在')) {
+      return NextResponse.json(
+        { success: false, message: '找不到指定的活動' },
+        { status: 404 }
+      )
+    }
+
     return NextResponse.json(
       { success: false, message: '系統錯誤，請稍後再試' },
       { status: 500 }
