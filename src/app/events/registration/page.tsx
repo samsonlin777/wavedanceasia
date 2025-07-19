@@ -13,7 +13,7 @@ const eventConfigs = {
     description: 'DJ Louis 現場演出 × 海邊咖啡時光',
     earlyPrice: 300,
     onsitePrice: 400,
-    included: ['咖啡一杯', '麵包一份', 'DJ音樂表演']
+    included: ['咖啡一杯', '麵包一份', 'DJ音樂表演', '無價的情誼']
   }
 }
 
@@ -28,6 +28,9 @@ function RegistrationForm() {
     phone: '',
     instagramId: '',
     paymentType: 'early_bird' as 'early_bird' | 'onsite',
+    participantCount: 1,
+    transferAmount: '',
+    transferLastFive: '',
     notes: ''
   })
   
@@ -86,6 +89,9 @@ function RegistrationForm() {
           phone: '',
           instagramId: '',
           paymentType: 'early_bird',
+          participantCount: 1,
+          transferAmount: '',
+          transferLastFive: '',
           notes: ''
         })
       }
@@ -100,6 +106,7 @@ function RegistrationForm() {
   }
 
   const currentPrice = formData.paymentType === 'early_bird' ? eventConfig.earlyPrice : eventConfig.onsitePrice
+  const totalAmount = currentPrice * formData.participantCount
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
@@ -148,9 +155,12 @@ function RegistrationForm() {
                 </div>
                 
                 <div className="border-t pt-4">
-                  <h3 className="font-semibold text-gray-800 mb-2">當前費用</h3>
+                  <h3 className="font-semibold text-gray-800 mb-2">費用計算</h3>
+                  <p className="text-sm text-gray-600">
+                    NT$ {currentPrice} × {formData.participantCount} 人
+                  </p>
                   <p className="text-2xl font-bold text-blue-600">
-                    NT$ {currentPrice}
+                    NT$ {totalAmount}
                   </p>
                   <p className="text-xs text-gray-500">
                     {formData.paymentType === 'early_bird' ? '預售價格' : '現場價格'}
@@ -163,17 +173,46 @@ function RegistrationForm() {
           {/* 報名表單 */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              {submitResult && (
-                <div className={`mb-6 p-4 rounded-lg ${
-                  submitResult.success 
-                    ? 'bg-green-50 border border-green-200 text-green-800' 
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}>
-                  {submitResult.message}
+              {submitResult?.success ? (
+                /* 報名成功頁面 */
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-6">🎉</div>
+                  <h2 className="text-3xl font-bold text-green-600 mb-4">報名成功！</h2>
+                  <div className="text-gray-700 space-y-4">
+                    <p>感謝您報名參加 Coffee Party！</p>
+                    <p>請依照活動頁面的指示完成轉帳付款。</p>
+                    <div className="bg-blue-50 rounded-lg p-6 my-6">
+                      <p className="font-semibold text-blue-800 mb-2">📸 重要提醒</p>
+                      <p className="text-blue-700">
+                        完成轉帳後，請到我們的 Instagram 告知付款完成！
+                      </p>
+                      <a 
+                        href="https://www.instagram.com/wavedancesurflife/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-block mt-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                      >
+                        🔗 前往 @wavedancesurflife
+                      </a>
+                    </div>
+                    <button
+                      onClick={() => setSubmitResult(null)}
+                      className="mt-6 text-blue-600 hover:text-blue-800 underline"
+                    >
+                      ← 重新填寫表單
+                    </button>
+                  </div>
                 </div>
-              )}
+              ) : (
+                /* 原本的表單內容 */
+                <>
+                  {submitResult && (
+                    <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+                      {submitResult.message}
+                    </div>
+                  )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-6">
                 {/* 基本資料 */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-100 pb-2">
@@ -222,6 +261,22 @@ function RegistrationForm() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="請輸入您的聯絡電話"
                     />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      報名人數 *
+                    </label>
+                    <select
+                      name="participantCount"
+                      value={formData.participantCount}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {[1,2,3,4,5,6,7,8,9,10].map(num => (
+                        <option key={num} value={num}>{num} 人</option>
+                      ))}
+                    </select>
                   </div>
                   
                   <div>
@@ -291,6 +346,52 @@ function RegistrationForm() {
                   </div>
                 </div>
 
+                {/* 匯款資訊 - 只在預售時顯示 */}
+                {formData.paymentType === 'early_bird' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-100 pb-2">
+                      匯款資訊
+                    </h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        匯款金額 *
+                      </label>
+                      <input
+                        type="number"
+                        name="transferAmount"
+                        value={formData.transferAmount}
+                        onChange={handleInputChange}
+                        required={formData.paymentType === 'early_bird'}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={`應匯金額：NT$ ${totalAmount}`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        請確認匯款金額正確：NT$ {totalAmount}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        匯款帳號後五碼 *
+                      </label>
+                      <input
+                        type="text"
+                        name="transferLastFive"
+                        value={formData.transferLastFive}
+                        onChange={handleInputChange}
+                        required={formData.paymentType === 'early_bird'}
+                        maxLength={5}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="請輸入您匯款帳號的後五碼"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        用於對帳確認，請輸入您匯款帳號的後五碼數字
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* 備註 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -317,6 +418,8 @@ function RegistrationForm() {
                   </button>
                 </div>
               </form>
+              </>
+              )}
             </div>
           </div>
         </div>

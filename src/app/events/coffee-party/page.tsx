@@ -66,12 +66,12 @@ export default function CoffeePartyPage() {
         </div>
       </section>
 
-      {/* DJ 介紹 */}
+      {/* DJ */}
       <section className="py-16 bg-blue-50">
         <div className="max-w-4xl mx-auto px-6">
           <div className="bg-white rounded-2xl shadow-lg p-8">
             <h2 className="text-3xl font-bold text-blue-900 mb-8 text-center">
-              DJ 介紹
+              DJ
             </h2>
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
@@ -84,7 +84,7 @@ export default function CoffeePartyPage() {
                   DJ Louis (Wolfie)
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  北藝大畢業的社畜
+                  北藝大畢業的社畜~
                 </p>
                 <p className="text-lg text-blue-700 font-medium italic">
                   &quot;A healer. A pioneer. A lover. A DJ. A pilot in the making.&quot;
@@ -164,7 +164,8 @@ export default function CoffeePartyPage() {
             </h2>
             <div className="bg-blue-50 rounded-lg p-6 mb-6">
               <p className="text-center text-gray-700 mb-4">
-                請計算好您的報名費後，匯款至以下帳號後填報名表單喔：
+                請計算好您的報名費後，匯款至以下帳號後填報名表單喔，預售1人300，算算你要出賣幾個朋友來聯誼？喔，不，是你想帶幾位朋友一起來衝浪和party。
+                如果要現場繳費400元，就直接填寫下面報名表單喔。(有人數限制)
               </p>
               <div className="grid md:grid-cols-2 gap-4 text-center">
                 <div className="space-y-2">
@@ -190,7 +191,7 @@ export default function CoffeePartyPage() {
                 href="/events/registration?event=coffee-party"
                 className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transform hover:-translate-y-1 transition-all duration-300 shadow-lg"
               >
-                完成付款後，點此填寫報名表單
+                點此填寫報名表單
               </Link>
             </div>
           </div>
