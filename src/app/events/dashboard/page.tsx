@@ -26,8 +26,6 @@ export default function EventDashboard() {
   const [registrations, setRegistrations] = useState<Registration[]>([])
   const [loading, setLoading] = useState(true)
   const [checkedIn, setCheckedIn] = useState<Set<number>>(new Set())
-  const [editingCount, setEditingCount] = useState<number | null>(null)
-  const [newCount, setNewCount] = useState<string>('')
   const [stats, setStats] = useState({
     total: 0,
     totalParticipants: 0,
@@ -201,25 +199,6 @@ export default function EventDashboard() {
     }
   }
 
-  const updateParticipantCount = async (registrationId: number, count: number) => {
-    try {
-      const { error } = await supabaseWDA.rpc('wavedanceasia_update_participant_count', {
-        p_registration_id: registrationId,
-        p_participant_count: count
-      })
-
-      if (error) throw error
-      
-      setEditingCount(null)
-      setNewCount('')
-      // 刷新資料
-      fetchRegistrations()
-    } catch (error) {
-      console.error('Error updating participant count:', error)
-      alert('更新人數失敗，請稍後再試')
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex items-center justify-center">
@@ -351,53 +330,12 @@ export default function EventDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {editingCount === registration.id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              value={newCount}
-                              onChange={(e) => setNewCount(e.target.value)}
-                              className="w-16 px-2 py-1 border rounded"
-                              min="1"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => {
-                                const count = parseInt(newCount)
-                                if (count > 0) {
-                                  updateParticipantCount(registration.id, count)
-                                }
-                              }}
-                              className="text-green-600 hover:text-green-800"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingCount(null)
-                                setNewCount('')
-                              }}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <div 
-                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                            onClick={() => {
-                              setEditingCount(registration.id)
-                              setNewCount(String(registration.participant_count || 1))
-                            }}
-                          >
-                            <div className="text-sm text-gray-900">
-                              {registration.participant_count || 1} 人
-                            </div>
-                            <div className="text-sm font-semibold text-blue-600">
-                              NT$ {registration.total_amount || ((registration.participant_count || 1) * (registration.ticket_type === 'onsite' ? 400 : 300))}
-                            </div>
-                          </div>
-                        )}
+                        <div className="text-sm text-gray-900">
+                          {registration.participant_count || 1} 人
+                        </div>
+                        <div className="text-sm font-semibold text-blue-600">
+                          NT$ {registration.total_amount || ((registration.participant_count || 1) * (registration.ticket_type === 'onsite' ? 400 : 300))}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {registration.payment_method === 'transfer' ? (
