@@ -233,7 +233,7 @@ function RegistrationForm() {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                       placeholder="請輸入您的姓名"
                     />
                   </div>
@@ -248,7 +248,7 @@ function RegistrationForm() {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                       placeholder="請輸入您的 Email"
                     />
                   </div>
@@ -262,7 +262,7 @@ function RegistrationForm() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                       placeholder="請輸入您的聯絡電話"
                     />
                   </div>
@@ -275,7 +275,7 @@ function RegistrationForm() {
                       name="participantCount"
                       value={formData.participantCount}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                     >
                       {[1,2,3,4,5,6,7,8,9,10].map(num => (
                         <option key={num} value={num}>{num} 人</option>
@@ -292,7 +292,7 @@ function RegistrationForm() {
                       name="instagramId"
                       value={formData.instagramId}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                       placeholder="@your_instagram_id"
                     />
                     <p className="text-xs text-gray-500 mt-1">
@@ -367,7 +367,7 @@ function RegistrationForm() {
                         value={formData.transferAmount}
                         onChange={handleInputChange}
                         required={formData.paymentType === 'early_bird'}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                         placeholder={`應匯金額：NT$ ${totalAmount}`}
                       />
                       <p className="text-xs text-gray-500 mt-1">
@@ -386,7 +386,7 @@ function RegistrationForm() {
                         onChange={handleInputChange}
                         required={formData.paymentType === 'early_bird'}
                         maxLength={5}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                         placeholder="請輸入您匯款帳號的後五碼"
                       />
                       <p className="text-xs text-gray-500 mt-1">
