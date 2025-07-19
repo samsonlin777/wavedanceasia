@@ -188,11 +188,12 @@ function RegistrationForm() {
                   <h2 className="text-3xl font-bold text-green-600 mb-4">報名成功！</h2>
                   <div className="text-gray-700 space-y-4">
                     <p>感謝您報名參加 Coffee Party！</p>
-                    <p>請依照活動頁面的指示完成轉帳付款。</p>
+                    <p>記得日期與時間到時候期待你的參予！。</p>
                     <div className="bg-blue-50 rounded-lg p-6 my-6">
                       <p className="font-semibold text-blue-800 mb-2">📸 重要提醒</p>
                       <p className="text-blue-700">
                         完成轉帳後，請到我們的 Instagram 告知付款完成！
+                        對了，參加這次活動的朋友，這次我們有提供住宿優惠唷，可以前一天和朋友一起來住，或者當天住宿優惠，詳情來我們的IG詢問吧！
                       </p>
                       <a 
                         href="https://www.instagram.com/wavedancesurflife/" 
