@@ -26,6 +26,8 @@ export default function EventDashboard() {
   const [registrations, setRegistrations] = useState<Registration[]>([])
   const [loading, setLoading] = useState(true)
   const [checkedIn, setCheckedIn] = useState<Set<number>>(new Set())
+  const [editingCount, setEditingCount] = useState<number | null>(null)
+  const [newCount, setNewCount] = useState<string>('')
   const [stats, setStats] = useState({
     total: 0,
     totalParticipants: 0,
@@ -93,7 +95,7 @@ export default function EventDashboard() {
         if (reg.payment_method === 'cash') {
           acc.onsite++
           acc.totalRevenue += 400 * participantCount // 現場價
-        } else if (reg.payment_status === 'pending') {
+        } else if (reg.payment_status === 'pending' || reg.payment_status === 'processing') {
           acc.pendingTransfer++
           const amount = reg.total_amount || 300 * participantCount // 預售價
           acc.pendingRevenue += amount
@@ -196,6 +198,25 @@ export default function EventDashboard() {
     } catch (error) {
       console.error('Error updating payment status:', error)
       alert('更新失敗，請稍後再試')
+    }
+  }
+
+  const updateParticipantCount = async (registrationId: number, count: number) => {
+    try {
+      const { error } = await supabaseWDA.rpc('wavedanceasia_update_participant_count', {
+        p_registration_id: registrationId,
+        p_participant_count: count
+      })
+
+      if (error) throw error
+      
+      setEditingCount(null)
+      setNewCount('')
+      // 刷新資料
+      fetchRegistrations()
+    } catch (error) {
+      console.error('Error updating participant count:', error)
+      alert('更新人數失敗，請稍後再試')
     }
   }
 
@@ -330,12 +351,53 @@ export default function EventDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {registration.participant_count || 1} 人
-                        </div>
-                        <div className="text-sm font-semibold text-blue-600">
-                          NT$ {registration.total_amount || ((registration.participant_count || 1) * (registration.ticket_type === 'onsite' ? 400 : 300))}
-                        </div>
+                        {editingCount === registration.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              value={newCount}
+                              onChange={(e) => setNewCount(e.target.value)}
+                              className="w-16 px-2 py-1 border rounded"
+                              min="1"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => {
+                                const count = parseInt(newCount)
+                                if (count > 0) {
+                                  updateParticipantCount(registration.id, count)
+                                }
+                              }}
+                              className="text-green-600 hover:text-green-800"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingCount(null)
+                                setNewCount('')
+                              }}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div 
+                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                            onClick={() => {
+                              setEditingCount(registration.id)
+                              setNewCount(String(registration.participant_count || 1))
+                            }}
+                          >
+                            <div className="text-sm text-gray-900">
+                              {registration.participant_count || 1} 人
+                            </div>
+                            <div className="text-sm font-semibold text-blue-600">
+                              NT$ {registration.total_amount || ((registration.participant_count || 1) * (registration.ticket_type === 'onsite' ? 400 : 300))}
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {registration.payment_method === 'transfer' ? (
@@ -355,22 +417,40 @@ export default function EventDashboard() {
                         {getStatusBadge(registration)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {registration.payment_method === 'transfer' && registration.payment_status === 'pending' && (
-                          <button
-                            onClick={() => updatePaymentStatus(registration.id, 'completed')}
-                            className="text-green-600 hover:text-green-900 font-medium"
-                          >
-                            確認匯款
-                          </button>
-                        )}
-                        {registration.payment_status === 'completed' && (
-                          <button
-                            onClick={() => updatePaymentStatus(registration.id, 'pending')}
-                            className="text-gray-600 hover:text-gray-900 font-medium"
-                          >
-                            取消確認
-                          </button>
-                        )}
+                        <div className="flex flex-col gap-2">
+                          {/* 轉帳確認按鈕 */}
+                          {registration.payment_method === 'transfer' && 
+                           (registration.payment_status === 'pending' || registration.payment_status === 'processing') && (
+                            <button
+                              onClick={() => updatePaymentStatus(registration.id, 'completed')}
+                              className="text-green-600 hover:text-green-900 font-medium"
+                            >
+                              確認匯款
+                            </button>
+                          )}
+                          
+                          {/* 現場收款確認按鈕 */}
+                          {registration.payment_method === 'cash' && 
+                           registration.payment_status !== 'completed' && 
+                           isCheckedIn && (
+                            <button
+                              onClick={() => updatePaymentStatus(registration.id, 'completed')}
+                              className="text-blue-600 hover:text-blue-900 font-medium"
+                            >
+                              確認收款
+                            </button>
+                          )}
+                          
+                          {/* 取消確認按鈕 */}
+                          {registration.payment_status === 'completed' && (
+                            <button
+                              onClick={() => updatePaymentStatus(registration.id, 'processing')}
+                              className="text-gray-600 hover:text-gray-900 font-medium"
+                            >
+                              取消確認
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
