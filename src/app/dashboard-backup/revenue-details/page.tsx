@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getWavedanceData } from '../../lib/supabase'
+import { getWavedanceData } from '../../../lib/supabase'
 
 interface DailyRevenueData {
   transaction_date: string
