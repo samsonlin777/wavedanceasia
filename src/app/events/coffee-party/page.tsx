@@ -75,9 +75,11 @@ export default function CoffeePartyPage() {
             </h2>
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="w-48 h-48 bg-blue-200 rounded-full flex items-center justify-center">
-                  <span className="text-6xl">🎧</span>
-                </div>
+                <img 
+                  src="/images/dj-louis.png" 
+                  alt="DJ Louis (Wolfie)" 
+                  className="w-48 h-48 rounded-full object-cover shadow-lg"
+                />
               </div>
               <div className="flex-1 text-center md:text-left">
                 <h3 className="text-2xl font-bold text-blue-800 mb-2">
@@ -204,6 +206,15 @@ export default function CoffeePartyPage() {
           <p className="text-blue-200">
             © 2025 WDA Wave Dance Team. 準備好和我們一起享受完美的週六早晨了嗎？
           </p>
+          {/* 管理者連結（隱藏） */}
+          <div className="mt-6">
+            <Link 
+              href="/events/dashboard"
+              className="text-blue-400 hover:text-white text-sm opacity-50 hover:opacity-100 transition-opacity"
+            >
+              管理
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

@@ -31,7 +31,8 @@ function RegistrationForm() {
     participantCount: 1,
     transferAmount: '',
     transferLastFive: '',
-    notes: ''
+    notes: '',
+    subscribeNewsletter: false
   })
   
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -55,10 +56,12 @@ function RegistrationForm() {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+    const { name, value, type } = e.target
+    const checked = (e.target as HTMLInputElement).checked
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }))
   }
 
@@ -92,7 +95,8 @@ function RegistrationForm() {
           participantCount: 1,
           transferAmount: '',
           transferLastFive: '',
-          notes: ''
+          notes: '',
+          subscribeNewsletter: false
         })
       }
     } catch (error) {
@@ -405,6 +409,27 @@ function RegistrationForm() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="有任何特殊需求或想說的話嗎？"
                   />
+                </div>
+
+                {/* 電子報訂閱 */}
+                <div className="border-t pt-6">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="subscribeNewsletter"
+                      checked={formData.subscribeNewsletter}
+                      onChange={handleInputChange}
+                      className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-700">
+                        訂閱《浪花舞—不只是衝浪》生活電子報
+                      </span>
+                      <p className="text-xs text-gray-500 mt-1">
+                        收到更多有關衝浪學習、藝文、選物、海邊生活相關電子報，以及正在規劃中的「進階衝浪常見問題指南」。
+                      </p>
+                    </div>
+                  </label>
                 </div>
 
                 {/* 提交按鈕 */}

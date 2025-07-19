@@ -36,27 +36,41 @@ export async function getWDAEvents(filters?: {
   return data
 }
 
-// 建立報名
+// 建立報名 (v2 版本 - 自動同步客戶資料)
 export async function createWDARegistration(registrationData: {
   eventId: number
   participantName: string
   participantEmail: string
   participantPhone?: string
+  instagramHandle?: string
   ticketType?: string
   paymentMethod?: string
+  participantCount?: number
+  transferAmount?: string
+  transferLastFive?: string
   dietaryRestrictions?: string
+  emergencyContact?: string
+  emergencyPhone?: string
   customFields?: Record<string, unknown>
   notes?: string
 }) {
-  const { data, error } = await supabaseWDA.rpc('wavedanceasia_create_registration', {
+  const { data, error } = await supabaseWDA.rpc('wavedanceasia_create_registration_v2', {
     p_event_id: registrationData.eventId,
     p_participant_name: registrationData.participantName,
     p_participant_email: registrationData.participantEmail,
     p_participant_phone: registrationData.participantPhone,
+    p_instagram_handle: registrationData.instagramHandle,
     p_ticket_type: registrationData.ticketType || 'standard',
-    p_payment_method: registrationData.paymentMethod || 'pending',
+    p_payment_method: registrationData.paymentMethod || 'transfer',
     p_dietary_restrictions: registrationData.dietaryRestrictions,
-    p_custom_fields: registrationData.customFields,
+    p_emergency_contact: registrationData.emergencyContact,
+    p_emergency_phone: registrationData.emergencyPhone,
+    p_custom_fields: {
+      ...registrationData.customFields,
+      participant_count: registrationData.participantCount,
+      transfer_amount: registrationData.transferAmount,
+      transfer_last_five: registrationData.transferLastFive
+    },
     p_notes: registrationData.notes
   })
   if (error) throw error
